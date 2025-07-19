@@ -1,0 +1,41 @@
+import csv
+import re
+
+
+def format_row_to_dict(row):
+    """Метод конвертирующий строку в словарь имя столбца:значение"""
+    # Генератор словарей, ключ и значение от функции zip по заголовкам и текущему столбцу
+    return {k: format_cell(v) for (k, v) in zip(header, row)}
+
+
+def format_cell(cell):
+    """Метод форматирующий строку"""
+
+    # Если строка пустая, то "нет данных"
+    if len(cell) == 0:
+        return "Нет данных"
+
+    # чистим регулярками от html тегов и пробелов
+    cell = re.compile(r"<[^<>]+>").sub("", cell)
+    cell = re.compile(r"\u0020{2,}").sub(" ", cell)
+
+    # разбиваем строку по переносам строки
+    result_list = [x.strip() for x in cell.split("\n")]
+    # Объединяем все элементы через точку с запятой. 
+    # Если список из одного элемента, функция не вставит ни одного разделителя
+    return '; '.join(result_list)
+
+
+file_name = input()
+with open(file_name, encoding='utf_8_sig') as file:
+    vacancies_list = list(csv.reader(file, delimiter=","))
+    header = vacancies_list[0]
+    vacancies_list = [format_row_to_dict(row) for row in vacancies_list[1:] if
+                      sum(1 for cell in row if cell != "") >= len(header) / 2]
+
+    for (index, row_dict) in enumerate(vacancies_list):
+        for (key, value) in row_dict.items():
+            print(f"{key}: {value}")
+        # Пустые строки между выводом, кроме последнего.
+        if index != len(vacancies_list) - 1:
+            print("")
