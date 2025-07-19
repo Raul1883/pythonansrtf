@@ -1,0 +1,42 @@
+from ast import literal_eval
+
+# Словарь соответствия вопросов и ответов на него. Изначально пуст
+questions_answers_dictionary = {
+    "Введите название вакансии": None,
+    "Введите описание вакансии": None,
+    "Введите город для вакансии": None,
+    "Введите требуемый опыт работы (лет)": None,
+    "Введите нижнюю границу оклада вакансии": None,
+    "Введите верхнюю границу оклада вакансии": None,
+    "Нужен свободный график (да / нет)": None,
+    "Является ли данная вакансия премиум-вакансией (да / нет)": None
+}
+
+
+def run_polling():
+    """Метод запускает опрос, заполняя словарь ответов"""
+    for question in questions_answers_dictionary:
+        input_value = input(question + ": ")
+        if input_value in ["да", "нет"]:
+            questions_answers_dictionary[question] = input_value == "да"
+            continue
+        try:
+            questions_answers_dictionary[question] = literal_eval(input_value)
+        except (ValueError, SyntaxError):
+            questions_answers_dictionary[question] = input_value
+
+
+def get_type_str(value):
+    """Метод преобразует объект в строковое отображение типа, к которому он относится"""
+    return str(type(value)).split("'")[1]
+
+
+def print_formatted_date():
+    """Метод печает форматированные данные, полученные из опросов"""
+    for value in questions_answers_dictionary.values():
+        print(f"{value} ({get_type_str(value)})")
+
+
+if __name__ == "__main__":
+    run_polling()
+    print_formatted_date()
