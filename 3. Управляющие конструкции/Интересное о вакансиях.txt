@@ -1,0 +1,120 @@
+import csv
+import re
+
+
+def format_row_to_dict(row):
+    return {k: format_cell(v) for (k, v) in zip(header, row)}
+
+
+def format_cell(cell):
+    if len(cell) == 0:
+        return ["Нет данных"]
+
+    cell = re.compile(r"<[^<>]+>").sub("", cell)
+    cell = re.compile(r"\u0020{2,}").sub(" ", cell)
+
+    return [x.strip() for x in cell.split("\n")]
+
+
+def get_formatted_string(number, key_word):
+    """Функция возвращает число с подходящей словоформой, в зависимости от типа слова.
+    Допустимые ключи: 'RUR' - рублей/рубль/рубля; 'RAZ' - раз/раза 'VAC' - вакансия/вакансий/вакансии"""
+    format_words = []
+    match key_word:
+        case "RUR":
+            format_words = ["рублей", "рубль", "рубля"]
+        case "RAZ":
+            format_words = ['раз', 'раз', 'раза']
+        case "VAC":
+            format_words = ['вакансий', 'вакансия', 'вакансии']
+
+    if (number % 10 == 0) or ((number % 10 >= 5) and (number % 10 <= 10)) or 11 <= number % 100 <= 20:
+        return f"{number} {format_words[0]}"
+    if number % 10 == 1:
+        return f"{number} {format_words[1]}"
+    if 0 < number % 10 < 5:
+        return f"{number} {format_words[2]}"
+
+
+def get_formatted_salary_string(row, avg):
+    """Функция возвращает пре-форматированную строку, которая хранит информацию о вакансии"""
+    name = row["name"][0]
+    employer_name = row["employer_name"][0]
+    area = row["area_name"][0]
+    return f'{name} в компании "{employer_name}" - {get_formatted_string(avg, "RUR")} (г. {area})'
+
+
+def update_skills_frequency(skills):
+    """Функция обновляет словарь частотности содержания навыка"""
+    for skill in skills:
+        if skill not in skills_frequency.keys():
+            skills_frequency[skill] = 1
+        else:
+            skills_frequency[skill] += 1
+
+
+def update_city_sum(city, avg):
+    """Функция которая считает количество вакансий и сумму их оплат для города"""
+    if city not in city_average.keys():
+        city_average[city] = [avg, 1]
+    else:
+        city_average[city] = [city_average[city][0] + avg, city_average[city][1] + 1]
+
+
+file_name = input()
+with open(file_name, encoding='utf_8_sig') as file:
+    vacancies_list = list(csv.reader(file, delimiter=","))
+    header = vacancies_list[0]
+    vacancies_list = [format_row_to_dict(row) for row in vacancies_list[1:] if
+                      sum(1 for cell in row if cell != "") >= len(header) / 2]
+
+    skills_frequency = {}
+    city_average = {}
+    salaries = []
+    correct_vacancy_count = 0
+
+    for (index, row_dict) in enumerate(vacancies_list):
+        if row_dict["salary_currency"][0] != 'RUR':
+            continue
+
+        correct_vacancy_count += 1
+
+        # проверка на отсутствие данных в графах зарплаты
+        max_salary = row_dict["salary_to"][0] if row_dict["salary_to"][0] != "Нет данных" else 0
+        min_salary = row_dict["salary_from"][0] if row_dict["salary_from"][0] != "Нет данных" else 0
+
+        average_salary = int((float(min_salary) + float(max_salary)) / 2)
+
+        salaries.append((average_salary, get_formatted_salary_string(row_dict, average_salary), index))
+
+        update_skills_frequency(row_dict["key_skills"])
+        update_city_sum(row_dict["area_name"][0], average_salary)
+
+# вывод зарплат: сортировка зарплат по средней зарплате и индексу добавления
+print("Самые высокие зарплаты:")
+for (index, value) in enumerate(sorted(salaries, reverse=True, key=lambda x: (x[0], -x[2]))[:10]):
+    print(f"    {index + 1}) {value[1]}")
+print()
+
+# вывод зарплат: сортировка зарплат по средней зарплате и индексу добавления
+print("Самые низкие зарплаты:")
+for (index, value) in enumerate(sorted(salaries, key=lambda x: (x[0], x[2]))[:10]):
+    print(f"    {index + 1}) {value[1]}")
+print()
+
+# вывод скиллов, сортировка по частотности
+print(f"Из {len(skills_frequency)} скиллов, самыми популярными являются:")
+for (index, value) in enumerate(sorted(skills_frequency.items(), key=lambda i: i[1], reverse=True)[:10]):
+    print(f"    {index + 1}) {value[0]} - упоминается {get_formatted_string(value[1], 'RAZ')}")
+print()
+
+# вывод городов
+print(f"Из {len(city_average)} городов, самые высокие средние ЗП:")
+# фильтрация городов на условие о том, чтобы количество вакансий было больше 1% всех корректных вакансий
+filtered_city_average = {k: (int(v[0] / v[1]), v[1]) for (k, v) in city_average.items() if
+                         v[1] > int(correct_vacancy_count / 100)}
+# вывод вакансий, сортировка по средней оплаты
+for (index, value) in enumerate(sorted(filtered_city_average.items(), key=lambda i: i[1], reverse=True)[:10]):
+    average = get_formatted_string(value[1][0], 'RUR')
+    vacancy_count = get_formatted_string(value[1][1], 'VAC')
+    print(f"    {index + 1}) {value[0]} - средняя зарплата {average} ({vacancy_count})")

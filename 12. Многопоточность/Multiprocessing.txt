@@ -1,0 +1,15 @@
+import multiprocessing
+from multiprocessing import *
+
+
+def main():
+    array_2d_str = input()
+    array_2d = [map(int, x[1:-1].split()) for x in array_2d_str[1:-1].split(", ")]
+
+    with Pool(processes=multiprocessing.cpu_count()) as pool:
+        results = pool.map(worker_function, array_2d)
+        print(sum(results))
+
+
+if __name__ == "__main__":
+    main()

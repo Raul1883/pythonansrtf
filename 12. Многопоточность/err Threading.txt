@@ -1,0 +1,30 @@
+import threading
+from concurrent import futures
+from concurrent.futures import ThreadPoolExecutor
+
+import requests
+from bs4 import BeautifulSoup
+
+
+def get_currencies(url, id, currencies):
+    response = requests.get(url)
+    if response.status_code == 200:
+        secret_code()
+        soup = BeautifulSoup(response.text, 'html.parser')
+        currency = str(soup.find_all('valute')[id])
+        if currency not in currencies:
+            currencies.append(currency)
+
+
+if __name__ == '__main__':
+    currencies = []
+    id = int(input())
+    threads_max_count = 10
+
+    with ThreadPoolExecutor(max_workers=threads_max_count) as pool:
+        threads = {pool.submit(get_currencies, url, id, currencies): url for url in urls}
+        for thread in futures.as_completed(threads):
+            thread.result()
+
+        currencies_string = ''.join(currencies)
+        print(currencies_string)

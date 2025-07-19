@@ -1,0 +1,127 @@
+import csv
+import re
+from datetime import datetime
+from statistics import mean
+
+
+class Vacancy:
+    def __init__(self, row_dict: dict):
+        self.name = row_dict["name"]
+        self.description = row_dict["description"]
+        self.key_skills = row_dict["key_skills"]
+        self.experience_id = row_dict["experience_id"]
+        self.premium = row_dict["premium"]
+        self.employer_name = row_dict["employer_name"]
+        self.salary = Salary(row_dict)
+        self.area_name = row_dict["area_name"]
+        self.published_at = self.__format_time(row_dict["published_at"])
+
+    @staticmethod
+    def __format_time(time_str):
+        h, m, s, d, M, y = [int(x) for x in re.findall(r"\d+", time_str)]
+        return datetime(y, M, d, h, m, s)
+
+
+class Salary:
+    __currency_to_rub = {
+        "Манаты": 35.68,
+        "Белорусские рубли": 23.91,
+        "Евро": 59.90,
+        "Грузинский лари": 21.74,
+        "Киргизский сом": 0.76,
+        "Тенге": 0.13,
+        "Рубли": 1,
+        "Гривны": 1.64,
+        "Доллары": 60.66,
+        "Узбекский сум": 0.0055,
+    }
+
+    def __init__(self, row_dict: dict):
+        currency = row_dict["salary_currency"]
+        s_from = self.__convert_value_to_rub(int(row_dict["salary_from"]), currency)
+        s_to = self.__convert_value_to_rub(int(row_dict["salary_to"]), currency)
+        self.__salary = (s_from + s_to) / 2
+
+    @property
+    def value(self):
+        return self.__salary
+
+    @staticmethod
+    def __convert_value_to_rub(value, currency):
+        return value * Salary.__currency_to_rub[currency]
+
+
+class DataSet:
+    def __init__(self, file_name):
+        with open(file_name, encoding="utf_8_sig") as f:
+            self.__vacancies = []
+            for row in list(csv.DictReader(f, delimiter=",")):
+                self.__vacancies.append(Vacancy(self.__format_row(row)))
+
+    @staticmethod
+    def __format_row(row: dict):
+        return {k: v.strip() if len(v) < 100 else f"{v[:100]}..." for k, v in row.items()}
+
+    @property
+    def vacancies(self):
+        return self.__vacancies
+
+
+class Statistics:
+    def __init__(self, data_set: DataSet):
+        self.__data: [Vacancy] = data_set.vacancies
+
+    @staticmethod
+    def sort(d: dict, reverse=False, key=True):
+        return dict(sorted(d.items(), reverse=reverse, key=lambda x: x[0] if key else lambda y: y[1]))
+
+    @property
+    def salary_dynamic(self):
+        return self.sort({f.published_at.year: round(mean(
+            [x.salary.value for x in self.__data if x.published_at.year == f.published_at.year])) for f in self.__data})
+
+    def get_profession_salary_dynamic(self, profession):
+        return self.sort({f.published_at.year: round(mean([x.salary.value for x in self.__data if (
+                profession in x.name.lower() and x.published_at.year == f.published_at.year)])) for f in self.__data if
+                          profession in f.name.lower()})
+
+    @property
+    def vacancy_dynamic(self):
+        return self.sort(
+            {f.published_at.year: sum(1 for x in self.__data if x.published_at.year == f.published_at.year) for f
+             in self.__data})
+
+    def get_profession_vacancy_dynamic(self, profession):
+        return self.sort({f.published_at.year: sum(
+            1 for x in self.__data if (profession in x.name.lower() and x.published_at.year == f.published_at.year)) for
+            f in self.__data if profession in f.name.lower()})
+
+    @property
+    def cities_average(self):
+        return dict(sorted(
+            {f.area_name: round(mean([x.salary.value for x in self.__data if x.area_name == f.area_name])) for f in
+             self.__data}.items(), key=lambda x: x[1], reverse=True)[:10])
+
+    def get_profession_percent_city(self):
+        return dict(sorted(
+            {f.area_name: round(sum([1 for x in self.__data if x.area_name == f.area_name]) / len(self.__data), 4) for f
+             in self.__data}.items(), key=lambda x: x[1], reverse=True)[:10])
+
+    def get_salary_stat(self, profession):
+        return f"""Средняя зарплата по годам: {self.salary_dynamic}
+Количество вакансий по годам: {self.vacancy_dynamic}
+Средняя зарплата по годам для профессии '{profession}': {self.get_profession_salary_dynamic(profession)}
+Количество вакансий по годам для профессии '{profession}': {self.get_profession_vacancy_dynamic(profession)}
+Средняя зарплата по городам: {self.cities_average}
+Доля вакансий по городам: {self.get_profession_percent_city()}"""
+
+def main():
+    filename = input()
+    profession_name = input()
+    dataset = DataSet(filename)
+    statistics = Statistics(dataset)
+    print(statistics.get_salary_stat(profession_name))
+
+
+if __name__ == '__main__':
+    main()

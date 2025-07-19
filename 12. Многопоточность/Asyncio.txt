@@ -1,0 +1,6 @@
+import asyncio
+
+
+async def main(file_names):
+    tasks = [read_file_async(file_name) for file_name in file_names]
+    return ' '.join(name for name in await asyncio.gather(*tasks))

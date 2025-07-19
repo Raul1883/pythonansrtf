@@ -1,0 +1,64 @@
+import csv
+
+from var_dump import var_dump
+
+
+class Vacancy:
+    def __init__(self, name, description, key_skills, experience_id, premium, employer_name, salary, area_name,
+                 published_at):
+        self.name = name
+        self.description = description
+        self.key_skills = key_skills
+        self.experience_id = experience_id
+        self.premium = premium
+        self.employer_name = employer_name
+        self.salary = salary
+        self.area_name = area_name
+        self.published_at = published_at
+
+
+class Salary:
+    def __init__(self, salary_from, salary_to, salary_gross, salary_currency):
+        self.salary_from = salary_from
+        self.salary_to = salary_to
+        self.salary_gross = salary_gross
+        self.salary_currency = salary_currency
+
+
+class DataSet:
+    def __init__(self, file_name):
+        self.__vacancies = []
+        with open(file_name, encoding="utf_8_sig") as f:
+            for row in csv.DictReader(f, delimiter=","):
+                row: dict
+                salary = Salary(
+                    row["salary_from"],
+                    row["salary_to"],
+                    row["salary_gross"],
+                    row["salary_currency"]
+                )
+                self.__vacancies.append(Vacancy(
+                    row["name"],
+                    row["description"],
+                    row["key_skills"],
+                    row["experience_id"],
+                    row["premium"],
+                    row["employer_name"],
+                    salary,
+                    row["area_name"],
+                    row["published_at"])
+                )
+
+    @property
+    def vacancies(self):
+        return self.__vacancies
+
+
+def main():
+    filename = input()
+    data = DataSet(filename)
+    var_dump(data.vacancies)
+
+
+if __name__ == '__main__':
+    main()

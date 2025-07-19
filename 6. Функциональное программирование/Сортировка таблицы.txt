@@ -1,0 +1,115 @@
+import csv
+import re
+from datetime import datetime
+
+from prettytable import *
+
+
+def csv_reader(file):
+    with open(file, encoding="utf_8_sig") as f:
+        data = list(csv.reader(f, delimiter=","))
+
+        # проверка на пустой или содержащий только заголовки файл
+        if len(data) <= 1:
+            print("Нет данных")
+            return
+        return data[1:], data[0]
+
+
+def formatter(row):
+    return list(map(lambda x: x.strip() if len(x) < 100 else f"{x[:100]}...".strip(), row))
+
+
+def get_slice_args(out_slice):
+    if len(out_slice) == 2:
+        return {"start": int(out_slice[0]) - 1, "end": int(out_slice[1])}
+    if len(out_slice) == 1:
+        return {"start": int(out_slice[0]) - 1}
+    return {}
+
+
+def get_headings_args(headings):
+    if headings != ['']:
+        return {"fields": ["№"] + headings}
+    return {}
+
+
+def get_filter_args(out_slice, headings):
+    args = {}
+    args.update(get_slice_args(out_slice))
+    args.update(get_headings_args(headings))
+    return args
+
+
+def get_filter_func(filter_rules):
+    if len(filter_rules) != 3:
+        return lambda x: True
+
+    if filter_rules[0] == "Оклад":
+        return lambda x: is_in_range(int(filter_rules[1]), get_salary_range(x[filter_rules[2].index(filter_rules[0])]))
+
+    if filter_rules[0] == "Идентификатор валюты оклада":
+        return lambda x: filter_rules[1] in x[filter_rules[2].index("Оклад")]
+
+    if len(filter_rules) == 3:
+        return lambda x: filter_rules[1] in x[filter_rules[2].index(filter_rules[0])]
+
+
+def get_sort_args(column, reverse_key):
+    return {"reverse": reverse_key == "Да", "key": get_sort_func(column)}
+
+
+def get_sort_func(column):
+    if column == "Оклад":
+        return lambda x: int(re.findall(r"[\d\s]+-[\d\s]+", x[6])[0].replace(" ", "").split("-")[1])
+    if column == "Опыт работы":
+        return lambda x: 0 if x[3] == "Нет опыта" else min(map(int, re.findall(r"\d+", x[3])))
+    if column == "Дата публикации вакансии":
+        return sort_func_date
+	
+
+def sort_func_date(x):
+    h, m, s, d, M, y = [int(y) for y in re.findall(r"\d+", x[8])]
+    return datetime(y, M, d, h, m, s)
+
+
+def get_salary_range(salary):
+    return list(map(int, re.findall(r"[\d\s]+-[\d\s]+", salary)[0].replace(" ", "").split("-")))
+
+
+def is_in_range(value, in_range):
+    return in_range[0] <= value <= in_range[1]
+
+
+def fill_table(table, vacancies, filter_func, sort_args):
+    for vacancy in vacancies if sort_args["key"] is None else sorted(vacancies, **sort_args):
+        if filter_func(vacancy):
+            table.add_row(formatter(vacancy))
+### Тут было какое то замечание про декораторы, но я его не исправил, потому что оно показлось мне не логичным
+
+def print_vacancies(vacancies, titles, format_args, out_filter_rule, sort_args):
+    table = PrettyTable()
+    table.field_names = titles
+    table.max_width = 20
+    table.hrules = True
+    table.align = "l"
+
+    fill_table(table, vacancies, get_filter_func(out_filter_rule + [titles]), sort_args)
+
+    table.add_autoindex("№")
+
+    print(table.get_string(**format_args))
+
+
+if __name__ == "__main__":
+    file_name = input()
+    filter_rule = input().split(": ")
+    sort_column = input()
+    sort_order = input()
+    out_range = input().split()
+    out_headings = input().split(", ")
+
+    out_param = get_filter_args(out_range, out_headings)
+    csv_data = csv_reader(file_name)
+    if csv_data is not None:
+        print_vacancies(*csv_data, out_param, filter_rule, get_sort_args(sort_column, sort_order))

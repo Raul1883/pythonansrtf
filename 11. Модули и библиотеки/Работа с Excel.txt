@@ -1,0 +1,108 @@
+import string
+import pandas as pd
+
+from openpyxl import Workbook
+from openpyxl.styles import Side, Border
+
+
+def create_report():
+    vacancies = read_csv("vacancies.csv")
+    wb = Workbook()
+    write_excel(wb, get_year_statistics(vacancies), "Статистика по годам", {
+        "index": 0,
+        "widths": [6, 20, 20],
+    })
+    write_excel(wb, get_city_statistics(vacancies), "Статистика по городам", {
+        "index": 1,
+        "widths": [20, 20, 2, 20, 20],
+    })
+    wb.remove(wb["Sheet"])
+
+    wb.save('student_works/report.xlsx')
+
+
+def read_csv(file_name):
+    vac = pd.read_csv(file_name, header=None,
+                      names=["name", "min_salary", "max_salary", "salary_gross", "area", "date"])
+    vac["average"] = vac[['min_salary', 'max_salary']].mean(axis=1).fillna(0).round().astype(int)
+    vac["year"] = vac["date"].apply(lambda x: int(x[:4]))
+    return vac
+
+
+def get_year_statistics(df):
+    salary_statistics, count_statistics = get_group_by_param(df, "year")
+    out_df = pd.concat([salary_statistics, count_statistics], axis=1).reset_index()
+    out_df.columns = ["Год", "Средняя зарплата", "Количество вакансий"]
+    return [out_df]
+
+
+def get_city_statistics(df):
+    salary_statistics, count_statistics = get_group_by_param(df, "area")
+
+    out_df = pd.concat([salary_statistics, count_statistics], axis=1).reset_index()
+    out_df.columns = ["area", "average", "percent"]
+    out_df["percent"] = out_df["percent"].apply(lambda x: round(x / len(df) * 100, 2))
+
+    out_salary = get_filtered_10_lines(out_df, "average")
+    out_salary.columns = ["Город", "Уровень зарплат"]
+    out_percent = get_filtered_10_lines(out_df, "percent")
+    out_percent.columns = ["Город", "Доля вакансий, %"]
+
+    return [out_salary, out_percent]
+
+
+def get_filtered_10_lines(df, param):
+    return df.where(df["percent"] > 1).dropna().sort_values(by=[param], ascending=False).reset_index().head(10)[
+        ["area", param]]
+
+
+def get_group_by_param(df, param):
+    return df.groupby(param)["average"].mean().round().astype(int), df.groupby(param).size()
+
+
+thin = Side(style='thin', color='000000')
+border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+
+def set_border(ws, params):
+    for i in params["border_range"]:
+        cells = f"{i[0]}:{i[1]}"
+        for row in ws[cells]:
+            for cell in row:
+                cell.border = border
+
+
+def set_widths(ws, widths):
+    for i, w in enumerate(widths):
+        ws.column_dimensions[string.ascii_uppercase[i]].width = w
+
+
+def set_style(ws, params):
+    set_border(ws, params)
+    set_widths(ws, params["widths"])
+
+
+def format_write_values(full_list, shift):
+    for line in enumerate(full_list):
+        for cell in enumerate(line[1]):
+            yield string.ascii_uppercase[cell[0] + shift] + str(line[0] + 1), cell[1]
+
+
+def write_excel(wb, dfs, list_name, params):
+    wb.create_sheet(title=list_name, index=params["index"])
+    year_sheet = wb[list_name]
+    full_table = []
+    s_x = 0
+    params["border_range"] = []
+    for df in dfs:
+        table = list(format_write_values([df.columns] + df.values.tolist(), s_x))
+        params["border_range"].append((table[0][0], table[-1][0]))
+        full_table += table
+        s_x += len(df.columns) + 1
+    for i in full_table:
+        year_sheet[i[0]] = i[1]
+
+    set_style(wb[list_name], params)
+
+
+create_report()

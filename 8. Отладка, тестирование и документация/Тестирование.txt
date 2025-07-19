@@ -1,0 +1,45 @@
+class TestDivide(TestCase):
+    def test_both_negative_large(self):
+        a, b = -1000000, -500000
+        answer = 2
+        self.assertEqual(divide(a, b), answer)
+
+    def test_divide_zero_float(self):
+        a, b = 0.0, 0.0
+        answer = "Can't divide by zero"
+        self.assertEqual(divide(a, b), answer)
+
+    def test_zero_divide(self):
+        a, b = 0, 5
+        answer = 0
+        self.assertEqual(divide(a, b), answer)
+
+    def test_float_division(self):
+        a, b = 7.5, 2.5
+        answer = 3.0
+        self.assertEqual(divide(a, b), answer)
+
+    def test_float_divide_by_zero(self):
+        a, b = 7.5, 0
+        answer = "Can't divide by zero"
+        self.assertEqual(divide(a, b), answer)
+
+    def test_divide_by_negative_one(self):
+        a, b = 5, -1
+        answer = -5
+        self.assertEqual(divide(a, b), answer)
+
+    def test_negative_float(self):
+        a, b = -10, 2.5
+        answer = -4
+        self.assertEqual(divide(a, b), answer)
+
+    def test_first_large_second_zero(self):
+        a, b = 10 ** 12, 0
+        answer = "Can't divide by zero"
+        self.assertEqual(divide(a, b), answer)
+
+    def test_first_zero_second_large(self):
+        a, b = 0, 10 ** 12
+        answer = 0
+        self.assertEqual(divide(a, b), answer)

@@ -1,0 +1,29 @@
+import pandas as pd
+
+vacancies = pd.read_csv("vacancies_small.csv")
+rur_vacancy = vacancies[vacancies["salary_currency"] == "RUR"]
+
+
+def get_average(row):
+    min_v = row["salary_from"]
+    max_v = row["salary_to"]
+
+    if pd.notna(min_v) and pd.notna(max_v):
+        return (min_v + max_v) / 2
+    if pd.notna(min_v):
+        return min_v
+    if pd.notna(max_v):
+        return max_v
+
+
+rur_vacancy["average_salary"] = rur_vacancy.apply(get_average, axis="columns")
+
+rur_vacancy = rur_vacancy[rur_vacancy["average_salary"].notna()]
+
+average = rur_vacancy.groupby("area_name")["average_salary"].mean().reset_index()
+
+average["average_salary"] = average["average_salary"].round().astype(int)
+
+sorted_salaries = average.sort_values(by=["average_salary", "area_name"], ascending=[False, True])
+
+print(dict(zip(sorted_salaries["area_name"], sorted_salaries["average_salary"])))

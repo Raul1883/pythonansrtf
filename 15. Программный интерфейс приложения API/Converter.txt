@@ -1,0 +1,46 @@
+import pandas as pd
+import sqlite3
+from datetime import datetime
+
+df_currency = pd.read_csv("valutes.csv", index_col="date")
+csv_merged = pd.read_csv("vacancies_dif_currencies.csv")
+
+
+def calculate_average_salary_rub(row, df_currency):
+    salary_from = row["salary_from"]
+    salary_to = row["salary_to"]
+    currency = row["salary_currency"]
+    published_at = row["published_at"]
+
+    if pd.notna(salary_from) and pd.notna(salary_to):
+        salary = (salary_from + salary_to) / 2
+    elif pd.notna(salary_from):
+        salary = salary_from
+    elif pd.notna(salary_to):
+        salary = salary_to
+    else:
+        return None
+
+    if currency != "RUR":
+        date_obj = datetime.fromisoformat(published_at.split("T")[0])
+        year_month = date_obj.strftime("%Y-%m")
+
+        rate = df_currency.loc[year_month, currency]
+        salary_rub = salary * rate
+
+    else:
+        salary_rub = salary
+
+    return salary_rub
+
+
+csv_merged["salary"] = csv_merged.apply(lambda row: calculate_average_salary_rub(row, df_currency), axis=1)
+csv_merged["id"] = range(1, len(csv_merged) + 1)
+
+conn = sqlite3.connect("student_works/vacancies.db")
+
+csv_merged[["id", "name", "salary", "area_name", "published_at"]].to_sql("vacancies", conn,
+                                                                         if_exists="replace", index=False)
+
+conn.commit()
+conn.close()

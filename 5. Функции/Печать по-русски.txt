@@ -1,0 +1,71 @@
+import csv
+import re
+
+currency_dict = {
+    "AZN": "Манаты",
+    "BYR": "Белорусские рубли",
+    "EUR": "Евро",
+    "GEL": "Грузинский лари",
+    "KGS": "Киргизский сом",
+    "KZT": "Тенге",
+    "RUR": "Рубли",
+    "UAH": "Гривны",
+    "USD": "Доллары",
+    "UZS": "Узбекский сум"
+}
+
+gross_dict = {
+    "True": "Без вычета налогов",
+    "False": "С вычетом налогов"
+}
+
+
+def csv_reader(file_name):
+    with open(file_name, encoding="utf_8_sig") as f:
+        data = list(csv.reader(f, delimiter=","))
+        return data[1:], data[0]
+
+
+def format_experience(exp):
+    values = re.findall(r"\d+", exp)
+    if len(values) == 2:
+        return f"От {values[0]} {'года ' if values[0] == '1' else ''}до {values[1]} лет"
+    if len(values) == 1:
+        return f"Более {values[0]} лет"
+    return "Нет опыта"
+
+
+def format_money(value):
+    return format(int(float(value)), ',').replace(",", " ")
+
+
+def format_salary(min_s, max_s, currency, gross):
+    return f"{format_money(min_s)} - {format_money(max_s)} ({currency_dict[currency]}) ({gross_dict[gross]})"
+
+
+def formatter(row):
+    return {
+        "Название": row["name"],
+        "Описание": row["description"],
+        "Навыки": row["key_skills"].replace("\n", ", "),
+        "Опыт работы": format_experience(row["experience_id"]),
+        "Премиум-вакансия": "Да" if row["premium"] == "True" else "Нет",
+        "Компания": row["employer_name"],
+        "Оклад": format_salary(row["salary_from"], row["salary_to"], row["salary_currency"], row["salary_gross"]),
+        "Название региона": row["area_name"],
+        "Дата публикации вакансии": row["published_at"]
+    }
+
+
+def format_dict(d):
+    return "\n".join([f"{k}: {v.strip()}" for k, v in d.items()])
+
+
+def print_vacancies(vacancies, titles):
+    result_list = []
+    for vacancy in vacancies:
+        result_list.append(format_dict(formatter({t: f for t, f in zip(titles, vacancy)})))
+    print("\n\n".join(result_list), end="")
+
+
+print_vacancies(*csv_reader(input()))

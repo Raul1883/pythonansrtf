@@ -1,0 +1,22 @@
+import pandas as pd
+from collections import Counter
+import re
+
+vacancies = pd.read_csv('vacancies_small.csv')
+
+name = input() 
+sort_order = input() != "asc"
+
+
+def splitter(x):
+    if type(x) != str:
+        return []
+    return [y for y in x.replace("\r", "").split("\n") if y != ""]
+
+
+filtered_vac_skills = vacancies.dropna(subset=['key_skills'])[vacancies["name"].str.contains(name, case=False)][
+    "key_skills"].apply(splitter).sum()
+
+result = Counter(filtered_vac_skills).most_common(5)
+result.sort(key=lambda x: x[1], reverse=sort_order)
+print(result)

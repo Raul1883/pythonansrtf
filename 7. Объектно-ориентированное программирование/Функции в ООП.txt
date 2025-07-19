@@ -1,0 +1,72 @@
+import csv
+from prettytable import PrettyTable
+
+
+class Vacancy:
+    def __init__(self, row_dict: dict):
+        self.name = row_dict["name"]
+        self.description = row_dict["description"]
+        self.key_skills = row_dict["key_skills"]
+        self.experience_id = row_dict["experience_id"]
+        self.premium = row_dict["premium"]
+        self.employer_name = row_dict["employer_name"]
+        self.salary = Salary(row_dict)
+        self.area_name = row_dict["area_name"]
+        self.published_at = row_dict["published_at"]
+
+    def get_fields(self):
+        fields = []
+        for k, v in self.__dict__.items():
+            if k != "salary":
+                fields.append(v)
+            else:
+                fields += v.__dict__.values()
+        return fields
+
+
+class Salary:
+    def __init__(self, row_dict: dict):
+        self.salary_from = row_dict["salary_from"]
+        self.salary_to = row_dict["salary_to"]
+        self.salary_gross = row_dict["salary_gross"]
+        self.salary_currency = row_dict["salary_currency"]
+
+
+class Utils:
+    def __init__(self, vacancies):
+        self.__vacancies = [Vacancy(x) for x in vacancies]
+        self.__headings = vacancies[0].keys()
+
+    def get_table(self):
+        table = PrettyTable(field_names=self.__headings, max_width=20, hrules=True, align="l")
+        table.add_rows([x.get_fields() for x in self.__vacancies])
+        table.add_autoindex("№")
+        return table
+
+
+class DataSet:
+    def __init__(self, file_name):
+        with open(file_name, encoding="utf_8_sig") as f:
+            self.__row_dicts = []
+            for row in list(csv.DictReader(f, delimiter=",")):
+                self.__row_dicts.append(DataSet.format_row(row))
+
+    @staticmethod
+    def format_row(row: dict):
+        return {k: v.strip() if len(v) < 100 else f"{v[:100]}..." for k, v in row.items()}
+
+    @property
+    def row_dicts(self):
+        return self.__row_dicts
+
+
+def main():
+    filename = input()
+
+    data_set = DataSet(filename)
+    table_utils = Utils(data_set.row_dicts)
+    print(table_utils.get_table())
+
+
+if __name__ == '__main__':
+    main()

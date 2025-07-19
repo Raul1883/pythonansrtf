@@ -1,0 +1,62 @@
+import json
+import bs4
+import re
+
+html = input()
+
+exchange = {
+    '₽': 1.0,
+    '$': 100.0,
+    '€': 105.0,
+    '₸': 0.210,
+    'Br': 30.0,
+}
+
+result = {
+    'vacancy': None,
+    'salary': None,
+    'experience': None,
+    'company': None,
+    'description': None,
+    'skills': None,
+    'created_at': None,
+}
+
+def currency_transfer(value, currency):
+    return float(value) * exchange[currency]
+
+
+def parse_page(page):
+    # название вакансии
+    result["vacancy"] = page.find("h1", {"data-qa": "vacancy-title"}).text
+
+    # зарплата
+    salary_text = re.sub(r"\s", "", page.find("div", {"data-qa": "vacancy-salary"}).text)
+    salary_currency = re.findall(r"₽|\$|€|₸|Br", salary_text)[0]
+    salary_values = [currency_transfer(x, salary_currency) for x in re.findall(r"\d+", salary_text)]
+    result["salary"] = f"{salary_values[0]}->{salary_values[1]}" if len(salary_values) == 2 else str(salary_values[0])
+
+    # опыт работы
+    exp_values = re.findall(r"\d", page.find("span", {"data-qa": "vacancy-experience"}).text)
+    result["experience"] = f"{exp_values[0]}-{exp_values[1]}" if len(exp_values) == 2 else None
+
+    # название компании
+    result["company"] = page.find("span", class_="vacancy-company-name").text
+
+    # описание компании
+    result["description"] = page.find("div", {"data-qa": "vacancy-description"}).text
+
+    # ключевые навыки
+    skills = [x.text for x in page.find_all("span", {"data-qa": "bloko-tag__text"})]
+    result["skills"] = "; ".join(skills)
+
+    # дата основания
+    result["created_at"] = page.find("p", class_="vacancy-creation-time-redesigned").find("span") \
+        .text.replace("\xa0", " ")
+
+
+with open(html, encoding="utf-8") as f:
+    parse_page(bs4.BeautifulSoup(f.read(), "html.parser"))
+
+print(json.dumps(result))
+

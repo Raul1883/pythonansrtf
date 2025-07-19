@@ -1,0 +1,23 @@
+import cProfile
+import pstats
+from functions_to_profile import load_files, read_database, get_id, get_user_data, generate_words
+
+TASK_FUNCTIONS_ORDER = ['load_files', 'read_database', 'get_id', 'get_user_data', 'generate_words']
+
+
+def print_profile_func(tasks):
+    profiler = cProfile.Profile()
+
+    for task in TASK_FUNCTIONS_ORDER:
+        profiler.run(task + "()")
+
+    stats_profile = pstats.Stats(profiler).get_stats_profile()
+    total_time = stats_profile.total_tt
+    for func_name in tasks:
+        if func_name in stats_profile.func_profiles:
+            cumtime = stats_profile.func_profiles[func_name].cumtime
+            percentage = (cumtime / total_time) * 100
+            print(f"{cumtime:.4f}: {percentage:.0f}%")
+
+
+print_profile_func(TASK_FUNCTIONS_ORDER)

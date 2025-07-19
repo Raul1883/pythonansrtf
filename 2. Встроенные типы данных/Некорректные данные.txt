@@ -1,0 +1,128 @@
+# предположим, что пользователь будет следовать соглашению, и длина словарей будет равна, а ключи совпадать
+# словарь содержит соответствие имени вопроса и его текста
+name_questions_dictionary = {
+    "Name": "Введите название вакансии",
+    "Description": "Введите описание вакансии",
+    "City": "Введите город для вакансии",
+    "Experience": "Введите требуемый опыт работы (лет)",
+    "Min salary": "Введите нижнюю границу оклада вакансии",
+    "Max salary": "Введите верхнюю границу оклада вакансии",
+    "Is flexible": "Нужен свободный график (да / нет)",
+    "Is premium": "Является ли данная вакансия премиум-вакансией (да / нет)"
+}
+
+# словарь содержит соответствие имени вопроса и требования к содержанию вопроса
+name_questions_requirements_dictionary = {
+    "Name": "not empty",
+    "Description": "not empty",
+    "City": "",
+    "Experience": "int convertion",
+    "Min salary": "int convertion",
+    "Max salary": "int convertion",
+    "Is flexible": "bool convertion",
+    "Is premium": "bool convertion"
+}
+# словарь содержит соответствие имени вопроса и ответа на него
+name_answers_dictionary = {
+    "Name": "",
+    "Description": "",
+    "City": "",
+    "Experience": "",
+    "Min salary": "",
+    "Max salary": "",
+    "Is flexible": "",
+    "Is premium": ""
+}
+
+# словарь содержит соответствие имени вопроса и комментария для вывода ответа
+name_comment_dictionary = {
+    "Name": "",
+    "Description": "Описание: ",
+    "City": "Город: ",
+    "Experience": "Требуемый опыт работы: ",
+    "Min salary": "",
+    "Max salary": "",
+    "Is flexible": "Свободный график: ",
+    "Is premium": "Премиум-вакансия: "
+}
+
+
+def check_requirements(value, name):
+    """Метод проверяет соответсвует ли вопрос требованиям"""
+    if name_questions_requirements_dictionary[name] == "not empty":
+        return len(value) > 0
+    if name_questions_requirements_dictionary[name] == "int convertion":
+        try:
+            int(value)
+            return True
+        except ValueError:
+            return False
+    if name_questions_requirements_dictionary[name] == "bool convertion":
+        return value in ["да", "нет"]
+    return True
+
+
+def run_polling():
+    """Метод запускает опрос, заполняя словарь ответов"""
+    for name in name_questions_dictionary:
+        check = False
+        input_value = ""
+        while not check:
+            input_value = input(name_questions_dictionary[name] + ": ")
+            check = check_requirements(input_value, name)
+
+            if not check:
+                print("Данные некорректны, повторите ввод")
+                continue
+
+            if name == "Max salary":
+                if int(name_answers_dictionary["Min salary"]) > int(input_value):
+                    print("Нижняя граница оклада должна быть не больше верхней границы. Повторите ввод.")
+                    min_salary_check = False
+                    check = False
+
+                    while not min_salary_check:
+                        input_salary = input(name_questions_dictionary["Min salary"] + ": ")
+                        min_salary_check = check_requirements(input_salary, "Min salary")
+
+                        if min_salary_check:
+                            name_answers_dictionary["Min salary"] = input_salary
+
+
+        if name_questions_requirements_dictionary[name] == "bool convertion":
+            name_answers_dictionary[name] = input_value == "да"
+            continue
+        name_answers_dictionary[name] = input_value
+
+
+def get_formated_string(money, formatWords):
+    """Метод возвращает число с подходящей словоформой, которую передали через входной лист"""
+    if (money % 10 == 0) or ((money % 10 >= 5) and (money % 10 <= 10)) or 11 <= money % 100 <= 20:
+        return f"{money} {formatWords[0]}"
+    if money % 10 == 1:
+        return f"{money} {formatWords[1]}"
+    if 0 < money % 10 < 5:
+        return f"{money} {formatWords[2]}"
+
+
+def print_formatted_date():
+    """Метод печает форматированные данные, полученные из опросов"""
+    for key in name_answers_dictionary:
+        if key == "Experience":
+            formatted_line = get_formated_string(int(name_answers_dictionary[key]), ['лет', 'год', 'года'])
+            print(f"Требуемый опыт работы: {formatted_line}")
+        elif key in ["Is flexible", "Is premium"]:
+            print(name_comment_dictionary[key] + ("да" if name_answers_dictionary[key] else "нет"))
+        elif key == "Min salary":
+            average = int((int(name_answers_dictionary["Min salary"]) +
+                           int(name_answers_dictionary["Max salary"])) / 2)
+            print(f"Средний оклад: {get_formated_string(average, ['рублей', 'рубль', 'рубля'])}")
+        elif key == "Max salary":
+            continue
+        else:
+            print(name_comment_dictionary[key] + name_answers_dictionary[key])
+
+
+if __name__ == "__main__":
+    run_polling()
+    print_formatted_date()

@@ -1,0 +1,64 @@
+import csv
+from prettytable import *
+
+
+def csv_reader(file):
+    with open(file, encoding="utf_8_sig") as f:
+        data = list(csv.reader(f, delimiter=","))
+
+        # проверка на пустой или содержащий только заголовки файл   
+        if len(data) <= 1:
+            print("Нет данных")
+            return
+        return data[1:], data[0]
+
+
+def formatter(row):
+    return list(map(lambda x: x.strip() if len(x) < 100 else f"{x[:100]}...".strip(), row))
+
+
+def get_slice_args(out_slice):
+    if len(out_slice) == 2:
+        return {"start": int(out_slice[0]) - 1, "end": int(out_slice[1])}
+    if len(out_slice) == 1:
+        return {"start": int(out_slice[0]) - 1}
+    return {}
+
+
+def get_headings_args(headings):
+    if headings != ['']:
+        return {"fields": ["№"] + headings}
+    return {}
+
+
+def get_args(out_slice, headings):
+    args = {}
+    args.update(get_slice_args(out_slice))
+    args.update(get_headings_args(headings))
+    return args
+
+
+def print_vacancies(vacancies, titles, args):
+    table = PrettyTable()
+    table.field_names = titles
+    table.max_width = 20
+    table.hrules = True
+    table.align = "l"
+
+    for vacancy in vacancies:
+        table.add_row(formatter(vacancy))
+
+    table.add_autoindex("№")
+
+    print(table.get_string(**args))
+
+
+if __name__ == "__main__":
+    file_name = input()
+    out_range = input().split()
+    out_headings = input().split(", ")
+    out_param = get_args(out_range, out_headings)
+
+    csv_data = csv_reader(file_name)
+    if csv_data is not None:
+        print_vacancies(*csv_data, out_param)

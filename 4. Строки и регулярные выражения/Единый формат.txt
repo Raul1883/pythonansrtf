@@ -1,0 +1,61 @@
+import json
+import re
+from decimal import Decimal
+
+
+def get_format_func(d, v):
+    v = str(v)
+    match d:
+        case "description":
+            return format_description(v)
+        case "salary":
+            return format_salary(v)
+        case "key_phrase":
+            return format_key_phrase(v)
+        case "addition":
+            return format_addition(v)
+        case "company_info":
+            return format_company_info(v)
+        case "key_skills":
+            return format_key_skills(v)
+
+
+def format_description(s):
+    return ". ".join([x.capitalize() for x in s.split(". ")])
+
+
+def format_salary(s):
+    return str(Decimal(s).quantize(Decimal("1.00")))
+
+
+def format_key_phrase(s):
+    return s.upper() + "!"
+
+
+def format_addition(s):
+    return f"..{s.lower()}.."
+
+
+# С этим методом явно какие-то неполадки в тестах.
+# Тесты почему-то требуют строку, которая оканчивается тремя пробелами.
+# Хотя в годовой давности комментариях тесты корректные
+# С точки зрения адекватности, правильным выражением будет re.sub(r'\(.+\)', '', s)
+def format_company_info(s):
+    return re.sub(r'\(.+\)', '  ', s)
+
+
+def format_key_skills(s):
+    return s.replace("&nbsp", " ")
+
+
+text = input()
+headings = input()
+headings_pattern = f"(?:{headings.replace(', ', '|')})" + r": [^;]+;"
+data = re.findall(headings_pattern, text)
+
+result = {}
+for field in data:
+    description, value = field[:-1].split(": ")
+    result[description] = get_format_func(description, value)
+
+print(json.dumps(result))

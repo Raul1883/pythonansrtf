@@ -1,0 +1,7 @@
+import csv
+
+file_name = input()
+with open(file_name, encoding='utf_8_sig') as file:
+    vacancies_list = list(csv.reader(file, delimiter=","))
+    print(vacancies_list[0])
+    print([row for row in vacancies_list[1:] if sum(1 for cell in row if cell != "") >= len(vacancies_list[0]) / 2])

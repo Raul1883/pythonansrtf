@@ -1,0 +1,37 @@
+import csv
+
+en_to_ru_dict = {
+    "name": "Название",
+    "description": "Описание",
+    "key_skills": "Навыки",
+    "experience_id": "Опыт работы",
+    "premium": "Премиум-вакансия",
+    "employer_name": "Компания",
+    "salary_from": "Нижняя граница вилки оклада",
+    "salary_to": "Верхняя граница вилки оклада",
+    "salary_gross": "Оклад указан до вычета налогов",
+    "salary_currency": "Идентификатор валюты оклада",
+    "area_name": "Название региона",
+    "published_at": "Дата и время публикации вакансии"
+}
+
+
+def csv_reader(file_name):
+    with open(file_name, encoding="utf_8_sig") as f:
+        data = list(csv.reader(f, delimiter=","))
+        return data[1:], data[0]
+
+
+def format_field(title, field):
+    field = "Да" if field == "True" else "Нет" if field == "False" else field.replace("\n", ", ")
+    return f"{en_to_ru_dict[title]}: {field}".strip()
+
+
+def print_vacancies(vacancies, titles):
+    result_list = []
+    for vacancy in vacancies:
+        result_list.append("\n".join([format_field(t, f) for t, f in zip(titles, vacancy)]))
+    print("\n\n".join(result_list), end="")
+
+
+print_vacancies(*csv_reader(input()))

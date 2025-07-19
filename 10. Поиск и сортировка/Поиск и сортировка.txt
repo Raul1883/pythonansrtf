@@ -1,0 +1,13 @@
+import pandas as pd
+
+vacancies = pd.read_csv('vacancies_small.csv')
+vacancies.insert(loc=0, column='index', value=[i for i in range(len(vacancies))])
+
+column = input()
+key = input()
+sort_by = input()
+sort_order = input() == "asc"
+
+result = vacancies[vacancies[column].str.contains(key, case=False, na=False)].sort_values(by=[sort_by, "index"],
+                                                                                          ascending=[sort_order, True])
+print(result.name.values.tolist())

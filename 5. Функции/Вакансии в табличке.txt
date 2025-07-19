@@ -1,0 +1,83 @@
+import csv
+import re
+from prettytable import *
+
+currency_dict = {
+    "AZN": "Манаты",
+    "BYR": "Белорусские рубли",
+    "EUR": "Евро",
+    "GEL": "Грузинский лари",
+    "KGS": "Киргизский сом",
+    "KZT": "Тенге",
+    "RUR": "Рубли",
+    "UAH": "Гривны",
+    "USD": "Доллары",
+    "UZS": "Узбекский сум"
+}
+
+gross_dict = {
+    "True": "Без вычета налогов",
+    "False": "С вычетом налогов"
+}
+
+
+def csv_reader(file_name):
+    with open(file_name, encoding="utf_8_sig") as f:
+        data = list(csv.reader(f, delimiter=","))
+
+        # проверка на пустой или содержащий только заголовки файл   
+        if len(data) <= 1:
+            print("Нет данных")
+            return
+        return data[1:], data[0]
+
+
+def format_experience(exp):
+    values = re.findall(r"\d+", exp)
+    if len(values) == 2:
+        return f"От {values[0]} {'года ' if values[0] == '1' else ''}до {values[1]} лет"
+    if len(values) == 1:
+        return f"Более {values[0]} лет"
+    return "Нет опыта"
+
+
+def format_money(value):
+    return format(int(float(value)), ',').replace(",", " ")
+
+
+def format_salary(min_s, max_s, currency, gross):
+    return f"{format_money(min_s)} - {format_money(max_s)} ({currency_dict[currency]}) ({gross_dict[gross]})".strip()
+
+
+def formatter(row):
+    data = [
+        row["name"].strip(),
+        row["description"].strip(),
+        row["key_skills"].replace("\n", ", ").strip(),
+        format_experience(row["experience_id"]).strip(),
+        "Да" if row["premium"] == "True" else "Нет",
+        row["employer_name"].strip(),
+        format_salary(row["salary_from"], row["salary_to"], row["salary_currency"], row["salary_gross"]),
+        row["area_name"].strip(),
+        row["published_at"].strip()
+    ]
+    return list(map(lambda x: x.strip() if len(x) < 100 else f"{x[:100]}...".strip(), data))
+
+
+def print_vacancies(vacancies, titles):
+    table = PrettyTable()
+    table.field_names = ["Название", "Описание", "Навыки", "Опыт работы", "Премиум-вакансия", "Компания", "Оклад",
+                         "Название региона", "Дата публикации вакансии"]
+    table.max_width = 20
+    table.hrules = True
+    table.align = "l"
+
+    for vacancy in vacancies:
+        table.add_row(formatter({t: f for t, f in zip(titles, vacancy)}))
+    table.add_autoindex("№")
+    print(table)
+
+
+csv_data = csv_reader(input())
+if csv_data is not None:
+    print_vacancies(*csv_data)
